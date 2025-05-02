@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Editor from "@monaco-editor/react";
 import "./App.css";
-import LoginForm from "./LoginForm"; // Asegúrate de que esté en el mismo directorio
+import LoginForm from "./LoginForm";
 
 function App() {
   const [commandInput, setCommandInput] = useState("");
@@ -38,7 +38,11 @@ function App() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ command: commandInput }),
+        body: JSON.stringify({
+          command: commandInput,
+          user: usuarioActual?.username,
+          partitionId: usuarioActual?.partitionId,
+        }),
       });
 
       const result = await response.json();
@@ -64,13 +68,18 @@ function App() {
       <header className="App-header">
         <h1>Sistema de Archivos EXT2/EXT3 - Proyecto MIA</h1>
         {usuarioActual && (
-          <p>Sesión activa: <strong>{usuarioActual}</strong></p>
+          <p>
+            Sesión activa: <strong>{usuarioActual.username}</strong> (ID:{" "}
+            {usuarioActual.partitionId})
+          </p>
         )}
       </header>
 
       <div className="controls">
         <input type="file" accept=".smia" onChange={handleFileUpload} />
-        <button onClick={handleExecute} disabled={!usuarioActual}>Ejecutar</button>
+        <button onClick={handleExecute} disabled={!usuarioActual}>
+          Ejecutar
+        </button>
         <button onClick={handleClear}>Limpiar</button>
 
         {!usuarioActual ? (
@@ -85,7 +94,7 @@ function App() {
             onClick={handleLogout}
             style={{ backgroundColor: "#880e4f", color: "white" }}
           >
-            Cerrar Sesión ({usuarioActual})
+            Cerrar Sesión ({usuarioActual.username})
           </button>
         )}
       </div>
@@ -121,26 +130,39 @@ function App() {
         </div>
       </div>
 
-      {/* Ventana flotante de Login */}
+      {/* Modal de Login */}
       {mostrarLogin && (
-        <div style={{
-          position: "fixed",
-          top: "30%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          background: "#1e1e1e",
-          padding: "2rem",
-          borderRadius: "10px",
-          boxShadow: "0 0 15px rgba(0,0,0,0.5)",
-          zIndex: 1000
-        }}>
+        <div
+          style={{
+            position: "fixed",
+            top: "30%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            background: "#ffffff",
+            padding: "2rem",
+            borderRadius: "10px",
+            boxShadow: "0 0 15px rgba(0,0,0,0.3)",
+            zIndex: 1000,
+          }}
+        >
           <LoginForm
-            onLogin={(user) => {
-              setUsuarioActual(user);
+            onLogin={(info) => {
+              setUsuarioActual(info); // info: { username, partitionId, rememberUser }
               setMostrarLogin(false);
             }}
           />
-          <button onClick={() => setMostrarLogin(false)} style={{ marginTop: "1rem" }}>
+          <button
+            onClick={() => setMostrarLogin(false)}
+            style={{
+              marginTop: "1rem",
+              backgroundColor: "#999",
+              color: "#fff",
+              padding: "0.4rem 1rem",
+              border: "none",
+              borderRadius: "5px",
+              cursor: "pointer",
+            }}
+          >
             Cancelar
           </button>
         </div>
