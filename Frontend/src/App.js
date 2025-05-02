@@ -1,23 +1,15 @@
-// Importación de React y hooks necesarios
 import React, { useState, useEffect, useRef } from "react";
-
-// Monaco Editor: componente para crear el editor de texto estilo VSCode
 import Editor from "@monaco-editor/react";
-
-// Estilos de la app
 import "./App.css";
+import LoginForm from "./LoginForm"; // Asegúrate de que esté en el mismo directorio
 
 function App() {
-  // Estado para almacenar los comandos ingresados en el editor
   const [commandInput, setCommandInput] = useState("");
-
-  // Estado para mostrar la salida de la ejecución
   const [output, setOutput] = useState("");
-
-  // Referencia al textarea para auto-resize
   const textareaRef = useRef(null);
+  const [usuarioActual, setUsuarioActual] = useState(null);
+  const [mostrarLogin, setMostrarLogin] = useState(false);
 
-  // Auto-resize del textarea de salida cada vez que cambia el output
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
@@ -26,8 +18,6 @@ function App() {
     }
   }, [output]);
 
-  // ----------------------------------------------
-  // FUNCIÓN: Cargar archivo .smia desde el sistema
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (file && file.name.endsWith(".smia")) {
@@ -41,8 +31,6 @@ function App() {
     }
   };
 
-  // -----------------------------------------------------
-  // FUNCIÓN: Ejecutar comandos enviándolos al backend
   const handleExecute = async () => {
     try {
       const response = await fetch("http://localhost:3001/execute", {
@@ -60,32 +48,49 @@ function App() {
     }
   };
 
-  // ----------------------------------------
-  // FUNCIÓN: Limpiar la entrada y la salida
   const handleClear = () => {
     setCommandInput("");
     setOutput("");
   };
 
-  // ---------------------
-  // RENDERIZADO PRINCIPAL
+  const handleLogout = () => {
+    setUsuarioActual(null);
+    setCommandInput("");
+    setOutput("");
+  };
+
   return (
     <div className="App">
-      {/* Encabezado del proyecto */}
       <header className="App-header">
-        <h1>Sistema de Archivos EXT2 - Proyecto MIA</h1>
+        <h1>Sistema de Archivos EXT2/EXT3 - Proyecto MIA</h1>
+        {usuarioActual && (
+          <p>Sesión activa: <strong>{usuarioActual}</strong></p>
+        )}
       </header>
 
-      {/* Botones de control */}
       <div className="controls">
         <input type="file" accept=".smia" onChange={handleFileUpload} />
-        <button onClick={handleExecute}>Ejecutar</button>
+        <button onClick={handleExecute} disabled={!usuarioActual}>Ejecutar</button>
         <button onClick={handleClear}>Limpiar</button>
+
+        {!usuarioActual ? (
+          <button
+            onClick={() => setMostrarLogin(true)}
+            style={{ backgroundColor: "#2e7d32", color: "white" }}
+          >
+            Iniciar Sesión
+          </button>
+        ) : (
+          <button
+            onClick={handleLogout}
+            style={{ backgroundColor: "#880e4f", color: "white" }}
+          >
+            Cerrar Sesión ({usuarioActual})
+          </button>
+        )}
       </div>
 
-      {/* Área dividida: Entrada y Salida */}
       <div className="editor-container">
-        {/* Entrada de comandos con editor */}
         <div className="editor">
           <label>Entrada:</label>
           <Editor
@@ -104,7 +109,6 @@ function App() {
           />
         </div>
 
-        {/* Salida de los comandos ejecutados */}
         <div className="editor">
           <label>Salida:</label>
           <textarea
@@ -116,6 +120,31 @@ function App() {
           />
         </div>
       </div>
+
+      {/* Ventana flotante de Login */}
+      {mostrarLogin && (
+        <div style={{
+          position: "fixed",
+          top: "30%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          background: "#1e1e1e",
+          padding: "2rem",
+          borderRadius: "10px",
+          boxShadow: "0 0 15px rgba(0,0,0,0.5)",
+          zIndex: 1000
+        }}>
+          <LoginForm
+            onLogin={(user) => {
+              setUsuarioActual(user);
+              setMostrarLogin(false);
+            }}
+          />
+          <button onClick={() => setMostrarLogin(false)} style={{ marginTop: "1rem" }}>
+            Cancelar
+          </button>
+        </div>
+      )}
     </div>
   );
 }
