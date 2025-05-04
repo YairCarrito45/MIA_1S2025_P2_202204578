@@ -6,20 +6,34 @@ function LoginForm({ onLogin }) {
   const [password, setPassword] = useState("");
   const [rememberUser, setRememberUser] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     if (!partitionId || !username || !password) {
       alert("Todos los campos son obligatorios.");
       return;
     }
-
-    onLogin({
-      partitionId,
-      username,
-      rememberUser,
-    });
+  
+    try {
+      const response = await fetch("http://localhost:3001/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password, partition_id: partitionId }),
+      });
+  
+      if (response.ok) {
+        alert("Inicio de sesión exitoso");
+        onLogin({ username, partitionId, rememberUser });
+      } else {
+        alert("Usuario o contraseña incorrectos o partición no montada");
+      }
+    } catch (error) {
+      alert("Error al comunicarse con el backend.");
+    }
   };
+  
 
   return (
     <div style={styles.container}>
