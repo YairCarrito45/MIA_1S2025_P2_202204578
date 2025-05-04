@@ -77,12 +77,8 @@ function App() {
 
       <div className="controls">
         <input type="file" accept=".smia" onChange={handleFileUpload} />
-        <button onClick={handleExecute}>
-        Ejecutar
-        </button>
-
+        <button onClick={handleExecute}>Ejecutar</button>
         <button onClick={handleClear}>Limpiar</button>
-
         {!usuarioActual ? (
           <button
             onClick={() => setMostrarLogin(true)}
@@ -131,42 +127,58 @@ function App() {
         </div>
       </div>
 
-      {/* Modal de Login */}
+      {/* Modal de Login con overlay */}
       {mostrarLogin && (
-        <div
-          style={{
-            position: "fixed",
-            top: "30%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            background: "#ffffff",
-            padding: "2rem",
-            borderRadius: "10px",
-            boxShadow: "0 0 15px rgba(0,0,0,0.3)",
-            zIndex: 1000,
-          }}
-        >
-          <LoginForm
-            onLogin={(info) => {
-              setUsuarioActual(info); // info: { username, partitionId, rememberUser }
-              setMostrarLogin(false);
+        <>
+          {/* Fondo oscuro */}
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100vw",
+              height: "100vh",
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              zIndex: 999,
             }}
           />
-          <button
-            onClick={() => setMostrarLogin(false)}
+
+          {/* Formulario modal */}
+          <div
             style={{
-              marginTop: "1rem",
-              backgroundColor: "#999",
-              color: "#fff",
-              padding: "0.4rem 1rem",
-              border: "none",
-              borderRadius: "5px",
-              cursor: "pointer",
+              position: "fixed",
+              top: "30%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              background: "#ffffff",
+              padding: "2rem",
+              borderRadius: "10px",
+              boxShadow: "0 0 15px rgba(0,0,0,0.3)",
+              zIndex: 1000,
             }}
           >
-            Cancelar
-          </button>
-        </div>
+            <LoginForm
+              onLogin={(info) => {
+                setUsuarioActual(info);
+                setMostrarLogin(false);
+              }}
+            />
+            <button
+              onClick={() => setMostrarLogin(false)}
+              style={{
+                marginTop: "1rem",
+                backgroundColor: "#999",
+                color: "#fff",
+                padding: "0.4rem 1rem",
+                border: "none",
+                borderRadius: "5px",
+                cursor: "pointer",
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </>
       )}
     </div>
   );
