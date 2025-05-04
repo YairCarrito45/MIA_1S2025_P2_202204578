@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import Editor from "@monaco-editor/react";
 import "./App.css";
 import LoginForm from "./LoginForm";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import DiskSelector from "./DiskSelector";
+import DiskViewer from "./DiskViewer";
 
 function App() {
   const [commandInput, setCommandInput] = useState("");
@@ -64,123 +67,136 @@ function App() {
   };
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Sistema de Archivos EXT2/EXT3 - Proyecto MIA</h1>
-        {usuarioActual && (
-          <p>
-            Sesión activa: <strong>{usuarioActual.username}</strong> (ID:{" "}
-            {usuarioActual.partitionId})
-          </p>
-        )}
-      </header>
+    <Router>
+      <Routes>
+        {/* Ruta principal: editor de comandos */}
+        <Route
+          path="/"
+          element={
+            <div className="App">
+              <header className="App-header">
+                <h1>Sistema de Archivos EXT2/EXT3 - Proyecto MIA</h1>
+                {usuarioActual && (
+                  <p>
+                    Sesión activa: <strong>{usuarioActual.username}</strong> (ID:{" "}
+                    {usuarioActual.partitionId})
+                  </p>
+                )}
+              </header>
 
-      <div className="controls">
-        <input type="file" accept=".smia" onChange={handleFileUpload} />
-        <button onClick={handleExecute}>Ejecutar</button>
-        <button onClick={handleClear}>Limpiar</button>
-        {!usuarioActual ? (
-          <button
-            onClick={() => setMostrarLogin(true)}
-            style={{ backgroundColor: "#2e7d32", color: "white" }}
-          >
-            Iniciar Sesión
-          </button>
-        ) : (
-          <button
-            onClick={handleLogout}
-            style={{ backgroundColor: "#880e4f", color: "white" }}
-          >
-            Cerrar Sesión ({usuarioActual.username})
-          </button>
-        )}
-      </div>
+              <div className="controls">
+                <input type="file" accept=".smia" onChange={handleFileUpload} />
+                <button onClick={handleExecute}>Ejecutar</button>
+                <button onClick={handleClear}>Limpiar</button>
+                {!usuarioActual ? (
+                  <button
+                    onClick={() => setMostrarLogin(true)}
+                    style={{ backgroundColor: "#2e7d32", color: "white" }}
+                  >
+                    Iniciar Sesión
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleLogout}
+                    style={{ backgroundColor: "#880e4f", color: "white" }}
+                  >
+                    Cerrar Sesión ({usuarioActual.username})
+                  </button>
+                )}
+              </div>
 
-      <div className="editor-container">
-        <div className="editor">
-          <label>Entrada:</label>
-          <Editor
-            height="560px"
-            language="plaintext"
-            theme="hc-black"
-            value={commandInput}
-            onChange={(value) => setCommandInput(value)}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 14,
-              lineNumbers: "on",
-              scrollBeyondLastLine: false,
-              wordWrap: "on",
-            }}
-          />
-        </div>
+              <div className="editor-container">
+                <div className="editor">
+                  <label>Entrada:</label>
+                  <Editor
+                    height="560px"
+                    language="plaintext"
+                    theme="hc-black"
+                    value={commandInput}
+                    onChange={(value) => setCommandInput(value)}
+                    options={{
+                      minimap: { enabled: false },
+                      fontSize: 14,
+                      lineNumbers: "on",
+                      scrollBeyondLastLine: false,
+                      wordWrap: "on",
+                    }}
+                  />
+                </div>
 
-        <div className="editor">
-          <label>Salida:</label>
-          <textarea
-            ref={textareaRef}
-            className="salida"
-            value={output}
-            readOnly
-            placeholder="#------Estiben Yair Lopez Leveron------ 202204578----"
-          />
-        </div>
-      </div>
+                <div className="editor">
+                  <label>Salida:</label>
+                  <textarea
+                    ref={textareaRef}
+                    className="salida"
+                    value={output}
+                    readOnly
+                    placeholder="#------Estiben Yair Lopez Leveron------ 202204578----"
+                  />
+                </div>
+              </div>
 
-      {/* Modal de Login con overlay */}
-      {mostrarLogin && (
-        <>
-          {/* Fondo oscuro */}
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100vw",
-              height: "100vh",
-              backgroundColor: "rgba(0, 0, 0, 0.5)",
-              zIndex: 999,
-            }}
-          />
+              {/* Modal de Login con overlay */}
+              {mostrarLogin && (
+                <>
+                  <div
+                    style={{
+                      position: "fixed",
+                      top: 0,
+                      left: 0,
+                      width: "100vw",
+                      height: "100vh",
+                      backgroundColor: "rgba(0, 0, 0, 0.5)",
+                      zIndex: 999,
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "fixed",
+                      top: "30%",
+                      left: "50%",
+                      transform: "translate(-50%, -50%)",
+                      background: "#ffffff",
+                      padding: "2rem",
+                      borderRadius: "10px",
+                      boxShadow: "0 0 15px rgba(0,0,0,0.3)",
+                      zIndex: 1000,
+                    }}
+                  >
+                    <LoginForm
+                      onLogin={(info) => {
+                        setUsuarioActual(info);
+                        setMostrarLogin(false);
+                      }}
+                    />
+                    <button
+                      onClick={() => setMostrarLogin(false)}
+                      style={{
+                        marginTop: "1rem",
+                        backgroundColor: "#999",
+                        color: "#fff",
+                        padding: "0.4rem 1rem",
+                        border: "none",
+                        borderRadius: "5px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          }
+        />
 
-          {/* Formulario modal */}
-          <div
-            style={{
-              position: "fixed",
-              top: "30%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              background: "#ffffff",
-              padding: "2rem",
-              borderRadius: "10px",
-              boxShadow: "0 0 15px rgba(0,0,0,0.3)",
-              zIndex: 1000,
-            }}
-          >
-            <LoginForm
-              onLogin={(info) => {
-                setUsuarioActual(info);
-                setMostrarLogin(false);
-              }}
-            />
-            <button
-              onClick={() => setMostrarLogin(false)}
-              style={{
-                marginTop: "1rem",
-                backgroundColor: "#999",
-                color: "#fff",
-                padding: "0.4rem 1rem",
-                border: "none",
-                borderRadius: "5px",
-                cursor: "pointer",
-              }}
-            >
-              Cancelar
-            </button>
-          </div>
-        </>
-      )}
-    </div>
+        {/* Ruta para selección de discos */}
+        <Route path="/discos" element={<DiskSelector />} />
+
+        {/* Ruta para ver estructura del disco */}
+        <Route path="/viewer/:nombre" element={<DiskViewer />} />
+      </Routes>
+    </Router>
   );
 }
 
