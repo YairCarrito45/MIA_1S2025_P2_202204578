@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+
 	"backend/analyzer"
 	"backend/stores"
 	"backend/structures"
@@ -29,29 +30,28 @@ type LoginRequest struct {
 
 // ---------- CONSTANTES ----------
 const (
-	errInvalidRequest = "Error: Petición inválida"
-	noCommandsMessage = "No se ejecutó ningún comando"
+	errInvalidRequest  = "Error: Petición inválida"
+	noCommandsMessage  = "No se ejecutó ningún comando"
 )
 
 // ---------- FUNCIÓN PRINCIPAL ----------
 func main() {
 	app := fiber.New()
 
-	// Middleware para CORS (React ↔ Go)
+	// Middleware CORS (permite conexión desde React)
 	app.Use(cors.New())
 
-	// Endpoints
+	// Rutas disponibles
 	app.Post("/execute", handleExecute)
 	app.Post("/login", handleLogin)
+	app.Get("/filesystem/:id", handleFilesystem) // ✅ NUEVO endpoint
 
-	// Inicia servidor
+	// Iniciar servidor
 	log.Println("Servidor iniciado en http://localhost:3001")
 	log.Fatal(app.Listen(":3001"))
 }
 
-// ---------- HANDLERS ----------
-
-// /execute
+// ---------- HANDLER: /execute ----------
 func handleExecute(c *fiber.Ctx) error {
 	var req CommandRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -61,10 +61,7 @@ func handleExecute(c *fiber.Ctx) error {
 	}
 
 	output := processCommands(req.Command)
-
-	return c.JSON(CommandResponse{
-		Output: output,
-	})
+	return c.JSON(CommandResponse{Output: output})
 }
 
 func processCommands(rawInput string) string {
@@ -76,7 +73,6 @@ func processCommands(rawInput string) string {
 		if cmd == "" {
 			continue
 		}
-
 		result, err := analyzer.Analyzer(cmd)
 		if err != nil {
 			outputBuilder.WriteString(fmt.Sprintf("Error: %s\n", err.Error()))
@@ -91,7 +87,7 @@ func processCommands(rawInput string) string {
 	return outputBuilder.String()
 }
 
-// /login
+// ---------- HANDLER: /login ----------
 func handleLogin(c *fiber.Ctx) error {
 	var req LoginRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -122,16 +118,37 @@ func handleLogin(c *fiber.Ctx) error {
 		if len(fields) < 5 || fields[1] != "U" {
 			continue
 		}
-if fields[3] == req.Username && fields[4] == req.Password {
-	uid := 0
-	gid := 0
-	fmt.Sscanf(fields[0], "%d", &uid) // UID viene en campo 0
-	fmt.Sscanf(fields[2], "%d", &gid) // GID viene en campo 2
-	stores.Auth.Login(req.Username, req.Password, req.PartitionID, uid, gid)
-	return c.SendString("Login exitoso")
-}
-
+		if fields[3] == req.Username && fields[4] == req.Password {
+			uid := 0
+			gid := 0
+			fmt.Sscanf(fields[0], "%d", &uid)
+			fmt.Sscanf(fields[2], "%d", &gid)
+			stores.Auth.Login(req.Username, req.Password, req.PartitionID, uid, gid)
+			return c.SendString("Login exitoso")
+		}
 	}
 
 	return c.Status(fiber.StatusUnauthorized).SendString("Usuario o contraseña incorrectos")
+}
+
+// ---------- HANDLER: /filesystem/:id ----------
+func handleFilesystem(c *fiber.Ctx) error {
+	partitionID := c.Params("id")
+
+	partition, path, err := stores.GetMountedPartition(partitionID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).SendString("Partición no montada")
+	}
+
+	var sb structures.SuperBlock
+	if err := sb.Deserialize(path, int64(partition.Part_start)); err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Error al leer SuperBlock")
+	}
+
+	root, err := sb.ReadDirectoryTree(path)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Error al leer árbol de directorios")
+	}
+
+	return c.JSON(root)
 }

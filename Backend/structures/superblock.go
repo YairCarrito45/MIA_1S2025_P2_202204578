@@ -346,3 +346,63 @@ func (sb *SuperBlock) FindInodeByPath(diskPath string, fullPath string) *Inode {
 	return finalInode
 }
 
+
+// ReadDirectoryTree genera una estructura en forma de árbol del sistema de archivos
+func (sb *SuperBlock) ReadDirectoryTree(path string) (map[string]interface{}, error) {
+	rootInode := &Inode{}
+	err := rootInode.Deserialize(path, int64(sb.S_inode_start))
+	if err != nil {
+		return nil, fmt.Errorf("no se pudo leer el inodo raíz: %v", err)
+	}
+
+	return sb.recursiveReadInode(path, rootInode, "/")
+}
+
+func (sb *SuperBlock) recursiveReadInode(path string, inode *Inode, name string) (map[string]interface{}, error) {
+	node := map[string]interface{}{
+		"name":     name,
+		"type":     "folder",
+		"children": []interface{}{},
+	}
+
+	for _, blockIndex := range inode.I_block {
+		if blockIndex == -1 {
+			continue
+		}
+
+		block := &FolderBlock{}
+		err := block.Deserialize(path, int64(sb.S_block_start+blockIndex*sb.S_block_size))
+		if err != nil {
+			continue
+		}
+
+		for _, content := range block.B_content {
+			childName := strings.TrimRight(string(bytes.Trim(content.B_name[:], "\x00")), " ")
+			if childName == "" || childName == "." || childName == ".." {
+				continue
+			}
+
+			childInode := &Inode{}
+			offset := int64(sb.S_inode_start) + int64(content.B_inodo)*int64(sb.S_inode_size)
+			err := childInode.Deserialize(path, offset)
+			if err != nil {
+				continue
+			}
+
+			if childInode.I_type[0] == '1' {
+				child := map[string]interface{}{
+					"name": childName,
+					"type": "file",
+				}
+				node["children"] = append(node["children"].([]interface{}), child)
+			} else if childInode.I_type[0] == '0' {
+				childNode, err := sb.recursiveReadInode(path, childInode, childName)
+				if err == nil {
+					node["children"] = append(node["children"].([]interface{}), childNode)
+				}
+			}
+		}
+	}
+
+	return node, nil
+}
