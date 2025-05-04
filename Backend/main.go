@@ -5,51 +5,61 @@ import (
 	"log"
 	"strings"
 	"backend/analyzer"
+	"backend/stores"
+	"backend/structures"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
-// Estructura del JSON que recibe el backend
+// ---------- ESTRUCTURAS ----------
 type CommandRequest struct {
 	Command string `json:"command"`
 }
 
-// Estructura del JSON que responde el backend
 type CommandResponse struct {
 	Output string `json:"output"`
 }
 
+type LoginRequest struct {
+	Username    string `json:"username"`
+	Password    string `json:"password"`
+	PartitionID string `json:"partition_id"`
+}
+
+// ---------- CONSTANTES ----------
 const (
 	errInvalidRequest = "Error: Petición inválida"
 	noCommandsMessage = "No se ejecutó ningún comando"
 )
 
+// ---------- FUNCIÓN PRINCIPAL ----------
 func main() {
 	app := fiber.New()
 
-	// Middleware CORS para permitir peticiones desde cualquier origen
+	// Middleware para CORS (React ↔ Go)
 	app.Use(cors.New())
 
-	// Ruta para ejecutar comandos
+	// Endpoints
 	app.Post("/execute", handleExecute)
+	app.Post("/login", handleLogin)
 
-	// Levanta el servidor en puerto 3001
+	// Inicia servidor
 	log.Println("Servidor iniciado en http://localhost:3001")
 	log.Fatal(app.Listen(":3001"))
 }
 
-// handleExecute maneja la lógica del endpoint POST /execute
+// ---------- HANDLERS ----------
+
+// /execute
 func handleExecute(c *fiber.Ctx) error {
 	var req CommandRequest
-
-	// Intenta parsear el JSON recibido
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(CommandResponse{
 			Output: errInvalidRequest,
 		})
 	}
 
-	// Ejecuta los comandos recibidos
 	output := processCommands(req.Command)
 
 	return c.JSON(CommandResponse{
@@ -57,7 +67,6 @@ func handleExecute(c *fiber.Ctx) error {
 	})
 }
 
-// processCommands ejecuta cada línea de comando y acumula los resultados
 func processCommands(rawInput string) string {
 	lines := strings.Split(rawInput, "\n")
 	var outputBuilder strings.Builder
@@ -80,4 +89,49 @@ func processCommands(rawInput string) string {
 		return noCommandsMessage
 	}
 	return outputBuilder.String()
+}
+
+// /login
+func handleLogin(c *fiber.Ctx) error {
+	var req LoginRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString("Error al leer datos de login")
+	}
+
+	partition, path, err := stores.GetMountedPartition(req.PartitionID)
+	if err != nil {
+		return c.Status(fiber.StatusUnauthorized).SendString("Partición no montada")
+	}
+
+	var sb structures.SuperBlock
+	err = sb.Deserialize(path, int64(partition.Part_start))
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Error al leer SuperBlock")
+	}
+
+	block, err := sb.GetUsersBlock(path)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).SendString("Error al leer users.txt")
+	}
+
+	content := string(block.B_content[:])
+	lines := strings.Split(content, "\n")
+
+	for _, line := range lines {
+		fields := strings.Split(line, ",")
+		if len(fields) < 5 || fields[1] != "U" {
+			continue
+		}
+if fields[3] == req.Username && fields[4] == req.Password {
+	uid := 0
+	gid := 0
+	fmt.Sscanf(fields[0], "%d", &uid) // UID viene en campo 0
+	fmt.Sscanf(fields[2], "%d", &gid) // GID viene en campo 2
+	stores.Auth.Login(req.Username, req.Password, req.PartitionID, uid, gid)
+	return c.SendString("Login exitoso")
+}
+
+	}
+
+	return c.Status(fiber.StatusUnauthorized).SendString("Usuario o contraseña incorrectos")
 }

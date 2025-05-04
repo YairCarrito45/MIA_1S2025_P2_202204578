@@ -77,9 +77,10 @@ function App() {
 
       <div className="controls">
         <input type="file" accept=".smia" onChange={handleFileUpload} />
-        <button onClick={handleExecute} disabled={!usuarioActual}>
-          Ejecutar
+        <button onClick={handleExecute}>
+        Ejecutar
         </button>
+
         <button onClick={handleClear}>Limpiar</button>
 
         {!usuarioActual ? (
