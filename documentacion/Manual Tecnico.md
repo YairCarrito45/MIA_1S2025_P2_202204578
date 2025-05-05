@@ -17,7 +17,7 @@ Este sistema se basa en una arquitectura cliente-servidor compuesta por los sigu
 Ambos componentes se comunican mediante peticiones HTTP bajo un modelo REST.
 
 ### Diagrama de Arquitectura
-![alt text](image.png)
+![alt text](image-1.png)
 ### Backend en Go (API REST)
 
 Desarrollado usando el framework Fiber. Expone un endpoint `/execute` que recibe comandos JSON:
@@ -45,7 +45,6 @@ Frontend desplegado en S3. Permite:
 - Visualizar el sistema de archivos en modo gráfico (solo lectura).
 - Mostrar contenido de archivos y journaling.
 
-![alt text](image-1.png)
 
 ## 3. Explicación de las Estructuras de Datos
 
@@ -147,14 +146,55 @@ Reconstruye el sistema a partir del journal tras pérdida simulada.
 ### `loss`
 Simula pérdida limpiando bitmaps, bloques e inodos.
 
+
 ## 5. Visualización Web del Sistema de Archivos
+
+### `mkdisk`
+- **Uso:**
+  ```
+  mkdisk -size=10 -path=/ruta/disco.mia
+  ```
+- **Descripción:** Crea un disco virtual y un MBR inicial.
+
+### `fdisk`
+- **Uso:**
+  ```
+  fdisk -size=3 -path=/ruta/disco.mia -name=part1
+  ```
+- **Descripción:** Crea una partición primaria, extendida o lógica dentro del disco.
+
+### `mount`
+- **Uso:**
+  ```
+  mount -path=/ruta/disco.mia -name=part1
+  ```
+- **Descripción:** Monta una partición y le asigna un ID único en memoria.
+
+### `mkfs`
+- **Uso:**
+  ```
+  mkfs -id=ID -type=full
+  ```
+- **Descripción:** Formatea la partición montada como EXT2 e inicializa superbloque, bitmaps, tablas e inodos. Crea el archivo inicial `users.txt`.
+
+### `login`
+- **Uso:**
+  ```
+  login -user=root -pass=123 -id=ID
+  ```
+- **Descripción:** Autentica usuarios con base en el archivo `users.txt`.
+
+(Otros comandos como `mkdir`, `mkfile`, `cat`, `mkgrp`, `mkusr`, `rep`, etc., serán documentados conforme se implementen.)
+
+
+## 6. Visualización Web del Sistema de Archivos
 
 - Vista de selección de disco y partición.
 - Visualizador gráfico (solo lectura) de carpetas y archivos.
 - Vista de contenido de archivos `.txt`.
 - Visualizador de journaling en interfaz.
 
-## 6. Pruebas de Pérdida y Recuperación
+## 7. Pruebas de Pérdida y Recuperación
 
 ### Simulación con `loss`
 Se limpian bloques, inodos y bitmaps de la partición.
@@ -165,6 +205,6 @@ Se restauran datos según el journal y el superbloque.
 ### Validación
 Pruebas realizadas: estructura de carpetas recuperada, archivos restaurados.
 
-## 7. Conclusión
+## 8. Conclusión
 
 Este sistema extiende el simulador EXT2 hacia EXT3 con manejo realista de bitácoras, recuperación ante fallos y visualización web. El despliegue en AWS permitió experimentar un ambiente real de servicios distribuidos, integración de frontend-backend y persistencia de datos binarios.
