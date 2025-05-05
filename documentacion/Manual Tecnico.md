@@ -45,7 +45,7 @@ Frontend desplegado en S3. Permite:
 - Visualizar el sistema de archivos en modo gráfico (solo lectura).
 - Mostrar contenido de archivos y journaling.
 
-
+![alt text](image-2.png)
 ## 3. Explicación de las Estructuras de Datos
 
 ### MBR (Master Boot Record)
@@ -205,6 +205,22 @@ Se restauran datos según el journal y el superbloque.
 ### Validación
 Pruebas realizadas: estructura de carpetas recuperada, archivos restaurados.
 
-## 8. Conclusión
+## 8. Despliegue en AWS
+
+### Frontend (ReactJS)
+- Construido con `npm run build`
+- Subido a bucket S3 con política pública
+- Configurado para servir `index.html` como página de inicio
+
+### Backend (Go)
+- Desplegado en instancia EC2 (Ubuntu Server)
+- Backend ejecutado manualmente con `go run main.go` o como servicio
+- Puerto `3001` habilitado en Security Group
+- Comunicación permitida desde origen cruzado (CORS)
+
+---
+
+
+## 9. Conclusión
 
 Este sistema extiende el simulador EXT2 hacia EXT3 con manejo realista de bitácoras, recuperación ante fallos y visualización web. El despliegue en AWS permitió experimentar un ambiente real de servicios distribuidos, integración de frontend-backend y persistencia de datos binarios.
